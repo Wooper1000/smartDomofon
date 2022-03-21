@@ -10,13 +10,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@tensorflow/tfjs-node": "^3.14.0",
+    "@tensorflow/tfjs-node": "^3.8.0",
     "@vladmandic/face-api": "^1.6.6",
     "axios": "^0.26.1",
     "canvas": "^2.9.0",
     "dateformat": "^5.0.3",
     "express": "^4.17.3",
+    "express-pino-logger": "^7.0.0",
     "face-api.js": "^0.22.2",
-    "nodemon": "^2.0.15"
+    "nodemon": "^2.0.15",
+    "pino": "^7.9.1",
+    "pino-express": "^1.1.1",
+    "pino-pretty": "^7.5.4"
   }
 }
