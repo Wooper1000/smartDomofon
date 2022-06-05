@@ -2,48 +2,80 @@ import axios from "axios";
 import * as fs from 'fs';
 import express from 'express';
 import tf, {linalg, log} from '@tensorflow/tfjs-node';
-//import * as canvas from 'canvas';
 import * as faceapi from '@vladmandic/face-api';
 import dateFormat, {masks} from "dateformat";
 import pino from 'pino'
 import expressPino from 'express-pino-logger'
+import * as stream from "stream";
+import bodyParser from "body-parser";
 
-const logger = pino(
-    {
-        level: process.env.LOG_LEVEL || 'debug',
+const logger = pino({
+        customLevels: {
+            foo: 35
+        },
+        formatters: {
+            bindings(bindings) {
+                return {}
+            }
+        },
         prettyPrint: {
             colorize: true,
             levelFirst: true,
             translateTime: "yyyy-dd-mm, h:MM:ss TT",
         },
+
     },
-    pino.destination("./pino-logger.log")
-);
+    pino.destination("./pino-logger.log"))
+
 const expressLogger = expressPino({logger})
 const app = express()
-
 const PORT = 3000
+
+
+app.listen(PORT, () => {
+    console.log(`App is listening on port ` + PORT)
+})
+
+
 
 
 await faceapi.nets.ssdMobilenetv1.loadFromDisk('./models')
 await faceapi.nets.faceLandmark68Net.loadFromDisk('./models')
 await faceapi.nets.faceRecognitionNet.loadFromDisk('./models')
-//const {Canvas, Image, ImageData} = canvas
-//faceapi.env.monkeyPatch({ Image, ImageData})
 
-
-app.listen(PORT, () => {
-    logger.info(`App is listening on port` + PORT)
-})
 app.use(expressLogger)
-
-
+app.use(express.static('./client'))
+app.use(bodyParser.json()); // for parsing application/json
+app.use(bodyParser.urlencoded({ extended: true }));
 const instance = axios.create({
     baseURL: 'https://api-mh.ertelecom.ru/rest/v1/',
     headers: {
-        authorization: 'Bearer yw7829r9qinkit2wabpkcpvq82n88a'
+        authorization: 'Bearer 5ukdciwkiv2pdysktwnx7i8vqx58c4'
     },
     responseType: 'stream'
+})
+
+app.get('/show-stream',async (req,res)=>{
+    let promise = await axios.get('https://api-mh.ertelecom.ru/rest/v1/forpost/cameras/2093665/video?LightStream=0',{
+        headers:
+            {
+                authorization: 'Bearer 5ukdciwkiv2pdysktwnx7i8vqx58c4',
+                'content-type':'application/json',
+                operator:2
+            }
+    })
+     let url = promise.data.data.URL
+    console.log(url)
+
+    let response = await axios.get(url,{
+        headers:{
+            authorization: 'Bearer 5ukdciwkiv2pdysktwnx7i8vqx58c4'
+        },
+        responseType: 'stream'
+    })
+
+    response.data.pipe(res)
+    // let stream = fs.createReadStream(response.data).on('open',()=>stream.pipe(res))
 })
 
 
@@ -100,7 +132,7 @@ let Door = new class {
     openDoor() {
         instance.post('places/5626227/accesscontrols/63309/actions', {"name": "accessControlOpen"}).then(res => {
             if (res.status === 200) {
-                logger.info('Дверь открыта')
+
             }
         })
     }
@@ -156,6 +188,7 @@ const openDoorByFace = () => {
                     if (bestMatch.toString().split(' ')[0] !== 'unknown' && !Door.isOpen) {
                         Door.openDoor()
                         Door.isOpen = true
+                        logger.info({msg: 'Дверь открыта', visitor: bestMatch.toString().split(' ')[0]})
                         setTimeout(Door.closeDoor.bind(Door), 5000)
                         fs.rename(stream.path, stream.path + '_' + bestMatch._label + '.jpeg', () => {
                         })
@@ -169,10 +202,13 @@ const openDoorByFace = () => {
                 }
             })
         })
-    }
-    catch(err){
-       logger.info(`${err}`)
+    } catch (err) {
+        logger.info(`${err}`)
     }
 }
 
-setInterval(openDoorByFace, 1000)
+app.get('/',(req,res)=>{
+    res.send('Сервер')
+})
+//setInterval(openDoorByFace, 1000)
+

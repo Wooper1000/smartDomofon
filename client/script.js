@@ -1,13 +1,13 @@
-
-
-fetch('http://localhost:3000/test',{
-    method:'GET',
-    mode: 'no-cors',
-})
-    .then(async (response) => {
-        const responseBlob = await response.data.blob()
-        console.log(responseBlob)
-        const img = document.createElement('img')
-        img.src = "data:image/png;base64"+responseBlob
-        document.querySelector(`body`).append(img)
-    })
+var videoElement = document.getElementById('video');
+var flvPlayer = flvjs.createPlayer({
+    type: 'flv',
+    isLive: true,
+    //url: '/show-stream'
+    url: '/show-stream',
+});
+flvPlayer.attachMediaElement(videoElement);
+flvPlayer.on('error', function (err) {
+    console.log(err)
+});
+flvPlayer.load();
+flvPlayer.play();
